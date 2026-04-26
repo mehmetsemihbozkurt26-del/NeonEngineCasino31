@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neon Casino V19</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:url('https://images.unsplash.com/photo-1506744038136-46273834b3fb') no-repeat center/cover;
+  color:#222;
+}
+
+.overlay{
+  background:rgba(255,255,255,0.75);
+  min-height:100vh;
+  padding:10px;
+}
+
+.screen{display:none;}
+.active{display:block;}
+
+.card{
+  background:rgba(255,255,255,0.6);
+  border-radius:8px;
+  padding:10px;
+  margin:8px 0;
+  transition:0.2s;
+}
+
+.card:hover{
+  transform:scale(1.01);
+}
+
+button{
+  width:100%;
+  padding:10px;
+  margin-top:5px;
+  border:none;
+  border-radius:6px;
+  background:#ddd;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+button:active{
+  transform:scale(0.96);
+}
+
+input{
+  width:100%;
+  padding:10px;
+  margin-top:5px;
+}
+
+.stats{
+  display:flex;
+  justify-content:space-around;
+  margin-bottom:10px;
+}
+
+/* EFFECTS */
+.flash-red{background:#ffd6d6 !important;}
+.flash-green{background:#d6ffd6 !important;}
+
+.fade{
+  animation:fade 0.3s;
+}
+
+@keyframes fade{
+  from{opacity:0.4;}
+  to{opacity:1;}
+}
+</style>
+</head>
+
+<body>
+<div class="overlay" id="body">
+
+<!-- LOGIN -->
+<div id="login" class="screen active">
+  <div class="card">
+    <h3>Giriş</h3>
+    <input id="u" placeholder="kullanıcı">
+    <input id="p" placeholder="şifre" type="password">
+    <button onclick="login()">Giriş Yap</button>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading" class="screen">
+  <h3>Yükleniyor...</h3>
+</div>
+
+<!-- LOBBY -->
+<div id="lobby" class="screen">
+  <div class="stats">
+    <div>💰 <span id="coin">100</span></div>
+    <div>⭐ <span id="level">1</span></div>
+    <div>🔥 <span id="streak">0</span></div>
+  </div>
+
+  <div class="card">
+    <h3>Oyunlar</h3>
+    <button onclick="openGame('slot')">Slot</button>
+    <button onclick="openGame('crash')">Crash</button>
+    <button onclick="openGame('roulette')">Roulette</button>
+    <button onclick="openGame('poker')">Poker</button>
+    <button onclick="openGame('mine')">Mine</button>
+    <button onclick="openGame('flip')">Flip</button>
+  </div>
+
+  <div class="card">
+    <h3>Admin</h3>
+    <input id="event" placeholder="1-10">
+    <button onclick="sendEvent()">Event Gönder</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="game" class="screen">
+  <div class="card fade">
+    <h3 id="gtitle">Oyun</h3>
+    <div id="gout">---</div>
+    <button onclick="play()">Oyna</button>
+    <button onclick="back()">Geri</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+
+let coin=100,level=1,streak=0;
+let current="";
+
+/* 🔊 SESLER */
+function playClick(){
+  let a=new Audio("https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3");
+  a.volume=0.2;
+  a.play();
+}
+
+function playWin(){
+  let a=new Audio("https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3");
+  a.volume=0.25;
+  a.play();
+}
+
+function playLose(){
+  let a=new Audio("https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3");
+  a.volume=0.2;
+  a.play();
+}
+
+/* SCREEN */
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+/* LOGIN */
+function login(){
+  playClick();
+  show("loading");
+  setTimeout(()=>show("lobby"),800);
+}
+
+/* GAME SELECT */
+function openGame(g){
+  playClick();
+  current=g;
+  document.getElementById("gtitle").innerText=g;
+  show("game");
+}
+
+/* BACK */
+function back(){
+  playClick();
+  show("lobby");
+}
+
+/* PLAY */
+function play(){
+
+  playClick();
+
+  let r=Math.random();
+  let win=r>0.5;
+
+  if(current==="slot") win?coin+=20:coin-=10;
+  if(current==="flip") win?coin+=15:coin-=5;
+  if(current==="mine") win?coin+=50:coin+=10;
+  if(current==="roulette") win?coin+=25:coin-=15;
+  if(current==="poker") win?coin+=30:coin-=10;
+  if(current==="crash") win?coin*=1.5:coin-=20;
+
+  streak = win ? streak+1 : 0;
+  level=Math.floor(coin/100);
+
+  effect(win?"green":"red");
+  win ? playWin() : playLose();
+
+  update();
+  save();
+
+  if(Math.random()<0.1) alert("Jumpscare!");
+}
+
+/* ADMIN EVENT */
+function sendEvent(){
+  let id=document.getElementById("event").value;
+  playClick();
+
+  switch(id){
+    case "1": coin*=1.1; break;
+    case "2": coin+=100; break;
+    case "3": alert("izleniyorsun"); break;
+    case "4": coin+=50; break;
+    case "5": coin-=20; break;
+    case "6": coin+=10; break;
+    case "7": alert("Jumpscare!"); break;
+    case "8": coin-=30; break;
+    case "9": coin-=10; break;
+    case "10": coin*=2; break;
+  }
+
+  update();
+}
+
+/* EFFECT */
+function effect(type){
+  let b=document.getElementById("body");
+  b.className="overlay " + (type==="green"?"flash-green":"flash-red");
+  setTimeout(()=>b.className="overlay",200);
+}
+
+/* SAVE */
+function save(){
+  localStorage.setItem("casino_v19",JSON.stringify({coin,level,streak}));
+}
+
+/* UPDATE */
+function update(){
+  document.getElementById("coin").innerText=coin;
+  document.getElementById("level").innerText=level;
+  document.getElementById("streak").innerText=streak;
+}
+
+update();
+
+</script>
+
+</body>
+</html>
