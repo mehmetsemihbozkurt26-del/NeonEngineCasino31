@@ -3,250 +3,189 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Neon Casino V19</title>
+<title>V22 ULTIMATE + NPC SYSTEM</title>
 
 <style>
 body{
   margin:0;
   font-family:Arial;
-  background:url('https://images.unsplash.com/photo-1506744038136-46273834b3fb') no-repeat center/cover;
-  color:#222;
+  background:#fff;
 }
 
-.overlay{
-  background:rgba(255,255,255,0.75);
-  min-height:100vh;
-  padding:10px;
-}
-
-.screen{display:none;}
-.active{display:block;}
+.container{padding:10px;}
 
 .card{
-  background:rgba(255,255,255,0.6);
-  border-radius:8px;
+  background:#000;
+  color:#fff;
   padding:10px;
-  margin:8px 0;
-  transition:0.2s;
+  margin:10px 0;
 }
 
-.card:hover{
-  transform:scale(1.01);
+button{width:100%;padding:10px;margin-top:5px;}
+
+.chat,.log{
+  background:#111;
+  color:#0f0;
+  height:80px;
+  overflow:auto;
+  font-size:12px;
+  padding:5px;
 }
 
-button{
-  width:100%;
+/* ADMIN */
+#adminDock{
+  position:fixed;
+  bottom:10px;
+  right:10px;
+  background:#000;
+  color:#0f0;
   padding:10px;
-  margin-top:5px;
-  border:none;
-  border-radius:6px;
-  background:#ddd;
+  border:1px solid #0f0;
   cursor:pointer;
-  transition:0.2s;
 }
 
-button:active{
-  transform:scale(0.96);
+#adminPanel{
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:450px;
+  height:450px;
+  background:#000;
+  border:2px solid #0f0;
+  display:none;
+  z-index:999;
 }
 
-input{
-  width:100%;
-  padding:10px;
-  margin-top:5px;
-}
-
-.stats{
+.header{
+  background:#0f0;
+  color:#000;
+  padding:8px;
   display:flex;
-  justify-content:space-around;
-  margin-bottom:10px;
+  justify-content:space-between;
 }
 
-/* EFFECTS */
-.flash-red{background:#ffd6d6 !important;}
-.flash-green{background:#d6ffd6 !important;}
-
-.fade{
-  animation:fade 0.3s;
-}
-
-@keyframes fade{
-  from{opacity:0.4;}
-  to{opacity:1;}
+.scroll{
+  height:120px;
+  overflow:auto;
+  background:#111;
+  padding:5px;
+  color:#fff;
 }
 </style>
 </head>
 
 <body>
-<div class="overlay" id="body">
 
-<!-- LOGIN -->
-<div id="login" class="screen active">
-  <div class="card">
-    <h3>Giriş</h3>
-    <input id="u" placeholder="kullanıcı">
-    <input id="p" placeholder="şifre" type="password">
-    <button onclick="login()">Giriş Yap</button>
-  </div>
+<div class="container">
+
+<div class="card">
+💰 Coin: <span id="coin">500</span>
 </div>
 
-<!-- LOADING -->
-<div id="loading" class="screen">
-  <h3>Yükleniyor...</h3>
+<div class="card">
+<button onclick="eventJackpot()">Jackpot</button>
+<button onclick="eventChaos()">Chaos</button>
 </div>
 
-<!-- LOBBY -->
-<div id="lobby" class="screen">
-  <div class="stats">
-    <div>💰 <span id="coin">100</span></div>
-    <div>⭐ <span id="level">1</span></div>
-    <div>🔥 <span id="streak">0</span></div>
-  </div>
-
-  <div class="card">
-    <h3>Oyunlar</h3>
-    <button onclick="openGame('slot')">Slot</button>
-    <button onclick="openGame('crash')">Crash</button>
-    <button onclick="openGame('roulette')">Roulette</button>
-    <button onclick="openGame('poker')">Poker</button>
-    <button onclick="openGame('mine')">Mine</button>
-    <button onclick="openGame('flip')">Flip</button>
-  </div>
-
-  <div class="card">
-    <h3>Admin</h3>
-    <input id="event" placeholder="1-10">
-    <button onclick="sendEvent()">Event Gönder</button>
-  </div>
+<div class="card">
+<h3>NPC Messages</h3>
+<div id="npc"></div>
 </div>
 
-<!-- GAME -->
-<div id="game" class="screen">
-  <div class="card fade">
-    <h3 id="gtitle">Oyun</h3>
-    <div id="gout">---</div>
-    <button onclick="play()">Oyna</button>
-    <button onclick="back()">Geri</button>
-  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="adminDock" onclick="toggleAdmin()">👑 ADMIN</div>
+
+<div id="adminPanel">
+
+<div class="header">
+ADMIN PANEL
+<button onclick="toggleAdmin()">X</button>
+</div>
+
+<div class="scroll">
+
+<h4>NPC CONTROL</h4>
+
+<button onclick="toggleNPC('tn')">👼 TN (ON/OFF)</button>
+<button onclick="toggleNPC('devil')">😈 Devil (ON/OFF)</button>
+<button onclick="toggleNPC('stan')">🧢 Stan (ON/OFF)</button>
+
+<h4>LOG (ADMIN ONLY)</h4>
+<div id="log" class="chat"></div>
+
 </div>
 
 </div>
 
 <script>
 
-let coin=100,level=1,streak=0;
-let current="";
+let coin=500;
 
-/* 🔊 SESLER */
-function playClick(){
-  let a=new Audio("https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3");
-  a.volume=0.2;
-  a.play();
+/* NPC STATES */
+let npcState={
+ tn:true,
+ devil:true,
+ stan:true
+};
+
+/* ADMIN TOGGLE */
+function toggleAdmin(){
+ let p=document.getElementById("adminPanel");
+ p.style.display = p.style.display==="block"?"none":"block";
 }
 
-function playWin(){
-  let a=new Audio("https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3");
-  a.volume=0.25;
-  a.play();
+/* EVENTS */
+function eventJackpot(){
+ coin+=100;
+ log("Jackpot triggered");
+ update();
 }
 
-function playLose(){
-  let a=new Audio("https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3");
-  a.volume=0.2;
-  a.play();
+function eventChaos(){
+ coin=Math.random()*1000;
+ log("Chaos triggered");
+ update();
 }
 
-/* SCREEN */
-function show(id){
-  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
+/* NPC SYSTEM */
+function npcSpeak(){
+
+ let msg="";
+
+ if(npcState.tn){
+  msg+="👼 TN: everything will be okay...<br>";
+ }
+
+ if(npcState.devil){
+  msg+="😈 Devil: take risk, double or nothing 😏<br>";
+ }
+
+ if(npcState.stan){
+  msg+="🧢 Stan: totally safe item bro trust me 😎<br>";
+ }
+
+ document.getElementById("npc").innerHTML=msg;
 }
 
-/* LOGIN */
-function login(){
-  playClick();
-  show("loading");
-  setTimeout(()=>show("lobby"),800);
+setInterval(npcSpeak,2000);
+
+/* NPC TOGGLE */
+function toggleNPC(npc){
+ npcState[npc]=!npcState[npc];
+ log(npc+" = "+npcState[npc]);
 }
 
-/* GAME SELECT */
-function openGame(g){
-  playClick();
-  current=g;
-  document.getElementById("gtitle").innerText=g;
-  show("game");
-}
-
-/* BACK */
-function back(){
-  playClick();
-  show("lobby");
-}
-
-/* PLAY */
-function play(){
-
-  playClick();
-
-  let r=Math.random();
-  let win=r>0.5;
-
-  if(current==="slot") win?coin+=20:coin-=10;
-  if(current==="flip") win?coin+=15:coin-=5;
-  if(current==="mine") win?coin+=50:coin+=10;
-  if(current==="roulette") win?coin+=25:coin-=15;
-  if(current==="poker") win?coin+=30:coin-=10;
-  if(current==="crash") win?coin*=1.5:coin-=20;
-
-  streak = win ? streak+1 : 0;
-  level=Math.floor(coin/100);
-
-  effect(win?"green":"red");
-  win ? playWin() : playLose();
-
-  update();
-  save();
-
-  if(Math.random()<0.1) alert("Jumpscare!");
-}
-
-/* ADMIN EVENT */
-function sendEvent(){
-  let id=document.getElementById("event").value;
-  playClick();
-
-  switch(id){
-    case "1": coin*=1.1; break;
-    case "2": coin+=100; break;
-    case "3": alert("izleniyorsun"); break;
-    case "4": coin+=50; break;
-    case "5": coin-=20; break;
-    case "6": coin+=10; break;
-    case "7": alert("Jumpscare!"); break;
-    case "8": coin-=30; break;
-    case "9": coin-=10; break;
-    case "10": coin*=2; break;
-  }
-
-  update();
-}
-
-/* EFFECT */
-function effect(type){
-  let b=document.getElementById("body");
-  b.className="overlay " + (type==="green"?"flash-green":"flash-red");
-  setTimeout(()=>b.className="overlay",200);
-}
-
-/* SAVE */
-function save(){
-  localStorage.setItem("casino_v19",JSON.stringify({coin,level,streak}));
+/* ADMIN LOG */
+function log(t){
+ document.getElementById("log").innerHTML+=t+"<br>";
 }
 
 /* UPDATE */
 function update(){
-  document.getElementById("coin").innerText=coin;
-  document.getElementById("level").innerText=level;
-  document.getElementById("streak").innerText=streak;
+ document.getElementById("coin").innerText=Math.floor(coin);
 }
 
 update();
